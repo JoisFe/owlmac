@@ -5,7 +5,7 @@
 
 ---
 
-`caffeinate -is claude`를 매번 치는 대신 메뉴바 부엉이를 클릭하면 돼요.
+`caffeinate -is claude`를 매번 치는 대신 메뉴바 부엉이를 클릭해서 **깨우기**를 누르면 돼요.
 `claude`나 `npm run dev` 같은 작업이 돌고 있으면 **알아서** 깨어 있다가, 작업이 끝나면 다시 잠들어요.
 
 <p align="center"><img src="docs/faces.png" width="560" alt="잠자는 중 · 지켜보는 중 · 깨어 있음 · 깜빡"></p>
@@ -48,8 +48,7 @@ xattr -dr com.apple.quarantine /Applications/OwlMac.app
 
 ## 사용법
 
-- **클릭**: 깨우기 / 재우기
-- **우클릭** (또는 ⌥·⌃ + 클릭): 메뉴
+- **클릭**: 메뉴가 열려요 (왼쪽·오른쪽 모두). 깨우기 / 재우기는 메뉴 첫 줄에 있어요.
 
 | 메뉴 | 하는 일 | caffeinate로 치면 |
 |---|---|---|
@@ -67,7 +66,7 @@ xattr -dr com.apple.quarantine /Applications/OwlMac.app
 
 - 10초마다 확인해요. 대소문자를 구분하기 때문에 `claude` CLI만 잡고 Claude 데스크톱 앱(`Claude`)은 잡지 않아요.
 - AI 도구가 띄워 두는 **MCP 서버**(`npx some-mcp` 같은 상주 프로세스)는 무시해요. 이것까지 세면 맥이 영영 안 자요.
-- 자동 감지로 깨어 있을 때 클릭하면 **지금 돌고 있는 작업이 끝날 때까지만** 쉬어요. 다음 작업부터는 다시 지켜봐요.
+- 자동 감지로 깨어 있을 때 **재우기**를 누르면 **지금 돌고 있는 작업이 끝날 때까지만** 쉬어요. 다음 작업부터는 다시 지켜봐요.
 
 ## 잘 되는지 확인
 

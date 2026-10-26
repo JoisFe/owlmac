@@ -9,10 +9,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let headerItem = NSMenuItem()
     private let defaults = UserDefaults.standard
 
-    /// Turned on by a click or a timed preset.
+    /// Turned on from the menu (깨우기) or a timed preset.
     private var manualOn = false
     private var deadline: Date?
-    /// A click while auto-detect holds the Mac awake snoozes it until the detected work finishes.
+    /// Choosing 재우기 while auto-detect holds the Mac awake snoozes it until the detected work finishes.
     private var autoSnoozed = false
     private var lidOn = false
 
@@ -48,12 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         defaults.register(defaults: ["autoDetect": true])
 
-        if let button = statusItem.button {
-            button.target = self
-            button.action = #selector(statusItemClicked)
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        }
+        // A menu attached to the status item opens on left and right click alike, like other menu bar apps.
         menu.delegate = self
+        statusItem.menu = menu
         headerItem.isEnabled = false
 
         watcher.names = watchNames
@@ -73,24 +70,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if lidOn { LidGuard.setEnabled(false) }
     }
 
-    // MARK: Clicks
+    // MARK: Menu opening
 
-    @objc private func statusItemClicked() {
-        guard let event = NSApp.currentEvent else { return }
-        let wantsMenu = event.type == .rightMouseUp
-            || event.modifierFlags.contains(.control)
-            || event.modifierFlags.contains(.option)
-        if wantsMenu {
-            buildMenu()
-            statusItem.menu = menu
-            statusItem.button?.performClick(nil)
-        } else {
-            toggle()
-        }
-    }
-
-    func menuDidClose(_ menu: NSMenu) {
-        statusItem.menu = nil
+    /// Rebuilds the menu right before it shows so the header and check marks reflect the current state.
+    func menuWillOpen(_ menu: NSMenu) {
+        buildMenu()
     }
 
     @objc private func toggle() {
@@ -275,7 +259,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func updateLabels() {
         headerItem.title = statusText
-        statusItem.button?.toolTip = "OwlMac — \(statusText)\n클릭: 깨우기/재우기 · 우클릭: 메뉴"
+        statusItem.button?.toolTip = "OwlMac — \(statusText)"
     }
 
     private var statusText: String {

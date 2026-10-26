@@ -60,6 +60,8 @@ xattr -dr com.apple.quarantine /Applications/OwlMac.app
 | 화면도 켜 두기 | 화면 꺼짐까지 막아요 | `-d` |
 | 뚜껑 닫아도 깨어 있기 | 충전기 없이 뚜껑을 닫아도 안 자요 (관리자 비밀번호 필요) | `sudo pmset -a disablesleep 1` |
 | 로그인할 때 실행 | 맥을 켜면 부엉이도 같이 일어나요 | |
+| 업데이트 자동 확인 | 실행할 때와 하루에 한 번 새 버전이 있는지 봐요 (기본 켜짐) | |
+| 업데이트 확인… | 지금 바로 확인하고, 새 버전이 있으면 내려받아 교체해요 | |
 
 **자동 감지 기본 대상**: `claude` `codex` `gemini` `aider` `npm` `pnpm` `yarn` `bun` `deno` `cargo` `gradle` `xcodebuild`
 
@@ -82,6 +84,13 @@ pmset -g assertions | grep OwlMac
   - 가방에 넣지 마세요. 뜨거워져요.
   - 부엉이를 재우거나 OwlMac을 끄면 원래대로 돌아가요 (비밀번호를 한 번 더 물어요).
 
+## 업데이트
+
+- 메뉴의 **업데이트 확인…**을 누르면 GitHub 릴리스를 확인해요. 새 버전이 있으면 내려받아 교체하고 OwlMac을 다시 실행해요. 깨어 있던 상태는 다시 켜야 해요.
+- **업데이트 자동 확인**이 켜져 있으면 실행할 때와 하루에 한 번 확인하고, 새 버전이 있을 때 한 번만 물어봐요. 나중에 하려면 메뉴 첫 줄의 **새 버전 vX 업데이트…**를 누르면 돼요. 끄면 수동으로만 확인해요.
+- 소스에서 직접 빌드한 OwlMac(`make run`)은 버전이 없어서 확인하지 않아요. 포크를 따라가려면 `defaults write io.github.owlmac updateRepo owner/repo`.
+- 터미널이 편하면 설치 명령을 다시 실행해도 같은 결과예요.
+
 ## 지우기
 
 ```bash
@@ -102,4 +111,5 @@ Sources/
   SleepGuard.swift      IOKit 전원 assertion (caffeinate와 같은 방식)
   ProcessWatcher.swift  감지 대상 프로세스 확인
   LidGuard.swift        pmset disablesleep
+  Updater.swift         GitHub 릴리스 확인, 새 버전 내려받아 교체
 ```

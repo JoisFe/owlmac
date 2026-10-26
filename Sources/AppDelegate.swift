@@ -65,8 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         if autoDetect { watcher.start() }
 
-        updater.onAutoFound = { [weak self] release in self?.promptUpdate(release) }
-        updater.scheduleAutoCheck()
+        MainActor.assumeIsolated {  // AppKit calls this on the main thread; Updater is main-actor isolated
+            updater.onAutoFound = { [weak self] release in self?.promptUpdate(release) }
+            updater.scheduleAutoCheck()
+        }
 
         lidOn = LidGuard.isEnabled
         refresh()
@@ -199,36 +201,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: Updates
 
-    @objc private func checkForUpdates() {
-        updater.check(manual: true) { [weak self] outcome in
-            guard let self else { return }
-            switch outcome {
-            case .newer(let release):
-                self.promptUpdate(release)
-            case .upToDate(let version):
-                self.notice("최신 버전이에요", "지금 쓰는 v\(version)이 가장 새 버전이에요.")
-            case .failed(let reason):
-                self.notice("업데이트를 확인하지 못했어요",
-                            "\(reason)\n\n잠시 뒤 다시 해 보거나 릴리스 페이지를 열어 보세요.\nhttps://github.com/semiaurum/owlmac/releases")
-            case .unversioned:
-                self.notice("소스 빌드예요", "버전 정보가 없어서 업데이트를 확인하지 않아요. 설치 명령으로 받은 OwlMac에서만 확인해요.")
+    @MainActor @objc private func checkForUpdates() {
+        Task {
+            do {
+                switch try await updater.check() {
+                case .newer(let release):
+                    promptUpdate(release)
+                case .upToDate(let version):
+                    notice("최신 버전이에요", "지금 쓰는 v\(version)이 가장 새 버전이에요.")
+                case .unversioned:
+                    notice("소스 빌드예요", "버전 정보가 없어서 업데이트를 확인하지 않아요. 설치 명령으로 받은 OwlMac에서만 확인해요.")
+                }
+            } catch {
+                notice("업데이트를 확인하지 못했어요",
+                       "\(error.localizedDescription)\n\n잠시 뒤 다시 해 보거나 릴리스 페이지를 열어 보세요.\nhttps://github.com/semiaurum/owlmac/releases")
             }
         }
     }
 
-    @objc private func installAvailableUpdate() {
+    @MainActor @objc private func installAvailableUpdate() {
         if let release = updater.available { promptUpdate(release) }
     }
 
-    @objc private func toggleAutoUpdateCheck() {
+    @MainActor @objc private func toggleAutoUpdateCheck() {
         updater.autoCheck.toggle()
     }
 
-    private func promptUpdate(_ release: Updater.Release) {
+    @MainActor private func promptUpdate(_ release: Updater.Release) {
         let alert = NSAlert()
         alert.messageText = "새 버전 v\(release.version)이 있어요"
         alert.informativeText = """
-        지금은 v\(Updater.currentVersion ?? "?")이에요.
+        지금은 v\(Updater.currentVersion?.text ?? "?")이에요.
 
         업데이트하면 OwlMac이 잠깐 종료됐다가 새 버전으로 다시 실행돼요. 깨어 있던 상태는 다시 켜야 해요.
         """
@@ -243,19 +246,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    private func startUpdate(_ release: Updater.Release) {
-        updater.install(release) { [weak self] error in
-            guard let self else { return }
-            if let error {
-                self.notice("업데이트하지 못했어요",
-                            "\(error)\n\n설치 명령을 다시 실행해도 돼요.\ncurl -fsSL https://raw.githubusercontent.com/semiaurum/owlmac/main/install.sh | bash")
-            } else {
+    @MainActor private func startUpdate(_ release: Updater.Release) {
+        Task {
+            do {
+                try await updater.install(release)
                 NSApp.terminate(nil)  // the swap script waits for this process to exit, then relaunches
+            } catch {
+                notice("업데이트하지 못했어요",
+                       "\(error.localizedDescription)\n\n설치 명령을 다시 실행해도 돼요.\ncurl -fsSL https://raw.githubusercontent.com/semiaurum/owlmac/main/install.sh | bash")
             }
         }
     }
 
-    private func notice(_ title: String, _ text: String) {
+    @MainActor private func notice(_ title: String, _ text: String) {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = text
@@ -383,7 +386,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(headerItem)
         menu.addItem(.separator())
 
-        if let release = updater.available {
+        if let release = MainActor.assumeIsolated({ updater.available }) {
             menu.addItem(item("새 버전 v\(release.version) 업데이트…", #selector(installAvailableUpdate)))
             menu.addItem(.separator())
         }
@@ -419,7 +422,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
         let autoUpdate = item("업데이트 자동 확인", #selector(toggleAutoUpdateCheck))
-        autoUpdate.state = updater.autoCheck ? .on : .off
+        autoUpdate.state = MainActor.assumeIsolated({ updater.autoCheck }) ? .on : .off
         menu.addItem(autoUpdate)
         menu.addItem(item("업데이트 확인…", #selector(checkForUpdates)))
         menu.addItem(NSMenuItem(title: "OwlMac 종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
